@@ -1,0 +1,2304 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Генератор номеров</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Orbitron:wght@400;700;900&family=Press+Start+2P&family=Courier+Prime:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #6a3093 100%);
+    padding: 16px;
+    color: #fff;
+  }
+  .app {
+    width: 100%;
+    max-width: 440px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 24px;
+    padding: 24px 20px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+  }
+
+  /* ===== Экран входа ===== */
+  .login-screen { text-align: center; }
+  .login-screen h1 { font-size: 1.5rem; margin: 0 0 6px; font-weight: 700; }
+  .login-screen .subtitle { font-size: 0.85rem; opacity: 0.7; margin-bottom: 22px; }
+  .name-fields { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; }
+  .name-fields label {
+    text-align: left; font-size: 0.8rem; opacity: 0.75;
+    margin-bottom: -6px; padding-left: 4px; font-weight: 600;
+  }
+  .name-fields input {
+    width: 100%; padding: 14px 16px; border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(0, 0, 0, 0.25); color: #fff;
+    font-size: 1rem; outline: none; transition: border 0.2s;
+  }
+  .name-fields input::placeholder { color: rgba(255, 255, 255, 0.4); }
+  .name-fields input:focus { border-color: #00c6ff; }
+  .nick-preview {
+    background: rgba(0, 0, 0, 0.35); border-radius: 14px;
+    padding: 14px; margin-bottom: 18px; font-size: 1.05rem; font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    word-break: break-all; min-height: 50px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .nick-preview .dim { opacity: 0.4; font-style: italic; font-weight: 400; font-size: 0.9rem; }
+  .start-btn {
+    width: 100%; padding: 17px; border: none; border-radius: 16px;
+    font-size: 1.1rem; font-weight: 700; color: #fff;
+    background: linear-gradient(135deg, #00c6ff, #0072ff);
+    cursor: pointer; box-shadow: 0 8px 24px rgba(0, 114, 255, 0.45);
+    transition: transform 0.15s, opacity 0.2s;
+  }
+  .start-btn:active { transform: scale(0.97); }
+  .start-btn:disabled { opacity: 0.4; box-shadow: none; cursor: not-allowed; }
+
+  /* ===== Экран игры ===== */
+  .game-screen { display: none; }
+  .game-screen.active { display: block; }
+
+  .header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 14px; gap: 6px;
+  }
+  .header .nick {
+    font-size: 1rem; font-weight: 700; word-break: break-all;
+    flex: 1; min-width: 0;
+  }
+  .header .nick small {
+    display: block; font-size: 0.7rem; font-weight: 400; opacity: 0.6;
+  }
+  .icon-btn {
+    background: rgba(255, 255, 255, 0.12); border: none; color: #fff;
+    padding: 9px 10px; border-radius: 10px; font-size: 1rem;
+    cursor: pointer; flex-shrink: 0; transition: background 0.2s;
+    position: relative;
+  }
+  .icon-btn:active { background: rgba(255, 255, 255, 0.25); }
+  .inv-badge {
+    position: absolute; top: -6px; right: -6px;
+    background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+    color: #fff; font-size: 0.65rem; font-weight: 700;
+    min-width: 18px; height: 18px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 5px; border: 2px solid #2a2a4a;
+  }
+  .inv-badge.hidden { display: none; }
+
+  h1.game-title {
+    text-align: center; font-size: 1.25rem;
+    margin: 0 0 4px; font-weight: 700;
+  }
+  .game-subtitle {
+    text-align: center; font-size: 0.78rem;
+    opacity: 0.7; margin-bottom: 16px;
+  }
+  .badge-wrap { text-align: center; margin-bottom: 16px; }
+  .current-country-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(0, 0, 0, 0.3); padding: 6px 14px;
+    border-radius: 20px; font-size: 0.85rem; font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  .current-country-badge .flag { font-size: 1.1rem; }
+  .display {
+    background: rgba(0, 0, 0, 0.35); border-radius: 18px;
+    padding: 30px 14px; margin-bottom: 16px; min-height: 110px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.12); position: relative;
+  }
+  .display.promo-display {
+    border-color: rgba(255, 215, 0, 0.5);
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.2) inset;
+  }
+  .display.admin-display {
+    border-color: rgba(255, 60, 60, 0.7);
+    box-shadow: 0 0 30px rgba(255, 60, 60, 0.35) inset, 0 0 20px rgba(255, 60, 60, 0.2);
+    animation: adminPulse 1.8s ease-in-out infinite;
+  }
+  @keyframes adminPulse {
+    0%, 100% { box-shadow: 0 0 30px rgba(255, 60, 60, 0.35) inset, 0 0 20px rgba(255, 60, 60, 0.2); }
+    50% { box-shadow: 0 0 40px rgba(255, 60, 60, 0.55) inset, 0 0 30px rgba(255, 60, 60, 0.4); }
+  }
+  .promo-tag {
+    position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+    background: linear-gradient(135deg, #ffd700, #ff9500); color: #000;
+    font-size: 0.65rem; font-weight: 800; padding: 3px 10px;
+    border-radius: 10px; letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .promo-tag.admin {
+    background: linear-gradient(135deg, #ff3c3c, #a80000);
+    color: #fff; box-shadow: 0 0 12px rgba(255, 60, 60, 0.6);
+  }
+  .number {
+    font-size: 1.45rem; font-weight: 700; letter-spacing: 0.5px;
+    word-break: break-all; text-align: center; line-height: 1.3;
+  }
+  .number.pop { animation: pop 0.3s ease; }
+  @keyframes pop {
+    0% { transform: scale(0.85); opacity: 0.3; }
+    60% { transform: scale(1.08); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .number.promo-pop { animation: promoPop 0.6s ease; }
+  @keyframes promoPop {
+    0% { transform: scale(0.5) rotate(-5deg); opacity: 0; }
+    40% { transform: scale(1.15) rotate(2deg); opacity: 1; }
+    70% { transform: scale(0.95) rotate(-1deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+  .number.admin-glow {
+    color: #ff6b6b;
+    text-shadow: 0 0 10px rgba(255, 60, 60, 0.7), 0 0 20px rgba(255, 60, 60, 0.4);
+  }
+  .placeholder { font-size: 0.95rem; opacity: 0.45; font-style: italic; }
+
+  .gen-btn {
+    width: 100%; padding: 17px; border: none; border-radius: 16px;
+    font-size: 1.1rem; font-weight: 700; color: #fff;
+    background: linear-gradient(135deg, #00c6ff, #0072ff);
+    cursor: pointer; box-shadow: 0 8px 24px rgba(0, 114, 255, 0.45);
+    transition: transform 0.15s;
+  }
+  .gen-btn:active { transform: scale(0.97); }
+
+  .gen-progress {
+    text-align: center; font-size: 0.72rem;
+    opacity: 0.65; margin-top: 8px;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .gen-progress .bar {
+    width: 120px; height: 4px; border-radius: 2px;
+    background: rgba(255, 255, 255, 0.15); overflow: hidden;
+  }
+  .gen-progress .bar-fill {
+    height: 100%; background: linear-gradient(90deg, #00c6ff, #38ef7d);
+    transition: width 0.3s;
+  }
+
+  .action-row {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px; margin-top: 10px;
+  }
+  .action-btn {
+    padding: 12px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: transparent; border-radius: 14px;
+    color: rgba(255, 255, 255, 0.9); font-size: 0.85rem; font-weight: 600;
+    cursor: pointer; transition: background 0.2s;
+  }
+  .action-btn:active { background: rgba(255, 255, 255, 0.1); }
+  .action-btn.save {
+    background: linear-gradient(135deg, #11998e, #38ef7d);
+    border-color: transparent; color: #fff;
+    box-shadow: 0 5px 16px rgba(56, 239, 125, 0.35);
+  }
+  .action-btn.save:active { transform: scale(0.97); }
+  .action-btn.save:disabled {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.4);
+    box-shadow: none; cursor: not-allowed;
+  }
+
+  /* ===== Модальное окно ===== */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    display: none; align-items: flex-end; justify-content: center;
+    z-index: 100;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    width: 100%; max-width: 440px; max-height: 88vh; overflow-y: auto;
+    background: linear-gradient(180deg, #2a2a4a 0%, #1a1a2e 100%);
+    border-radius: 24px 24px 0 0; padding: 20px 20px 30px;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.25s ease;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .modal-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 20px;
+  }
+  .modal-header h2 { font-size: 1.25rem; margin: 0; font-weight: 700; }
+  .close-btn {
+    background: rgba(255, 255, 255, 0.1); border: none; color: #fff;
+    width: 34px; height: 34px; border-radius: 50%; font-size: 1.2rem;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .close-btn:active { background: rgba(255, 255, 255, 0.25); }
+
+  .settings-section { margin-bottom: 22px; }
+  .settings-section h3 {
+    font-size: 0.85rem; opacity: 0.75; margin: 0 0 10px;
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+
+  /* ===== Темы ===== */
+  .theme-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+  .theme-btn {
+    padding: 12px 8px; border: 2px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.06); border-radius: 12px;
+    color: #fff; font-size: 0.8rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .theme-btn .swatch {
+    width: 100%; height: 26px; border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  .theme-btn.active {
+    border-color: #00c6ff;
+    box-shadow: 0 0 0 2px rgba(0, 198, 255, 0.4);
+  }
+  .theme-btn:active { transform: scale(0.97); }
+
+  .country-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+  .country-btn {
+    padding: 11px 8px; border: 2px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.06); border-radius: 12px;
+    color: #fff; font-size: 0.85rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .country-btn .flag { font-size: 1.2rem; line-height: 1; }
+  .country-btn.active {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+    border-color: transparent;
+    box-shadow: 0 5px 16px rgba(238, 90, 36, 0.45);
+  }
+  .country-btn:active { transform: scale(0.97); }
+
+  .font-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+  .font-btn {
+    padding: 12px 8px; border: 2px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.06); border-radius: 12px;
+    color: #fff; cursor: pointer; transition: all 0.2s;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    overflow: hidden;
+  }
+  .font-btn .preview { font-size: 1.15rem; font-weight: 700; letter-spacing: 0.5px; }
+  .font-btn .name {
+    font-size: 0.65rem; opacity: 0.7;
+    font-family: -apple-system, sans-serif; font-weight: 500;
+  }
+  .font-btn.active {
+    background: linear-gradient(135deg, #00c6ff, #0072ff);
+    border-color: transparent;
+    box-shadow: 0 5px 16px rgba(0, 114, 255, 0.45);
+  }
+  .font-btn.active .name { opacity: 0.95; }
+  .font-btn:active { transform: scale(0.97); }
+
+  .font-system { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .font-mono   { font-family: 'Roboto Mono', monospace; }
+  .font-orbit  { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
+  .font-pixel  { font-family: 'Press Start 2P', monospace; font-size: 0.75rem; }
+  .font-courier{ font-family: 'Courier Prime', monospace; }
+  .font-tech   { font-family: 'Share Tech Mono', monospace; }
+  .font-serif  { font-family: Georgia, 'Times New Roman', serif; }
+
+  /* ===== Инвентарь ===== */
+  .inv-tabs {
+    display: flex; gap: 6px; margin-bottom: 16px;
+  }
+  .inv-tab {
+    flex: 1; padding: 10px 6px; border: 2px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05); border-radius: 12px;
+    color: rgba(255, 255, 255, 0.7); font-size: 0.82rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .inv-tab.active {
+    background: linear-gradient(135deg, #00c6ff, #0072ff);
+    border-color: transparent; color: #fff;
+    box-shadow: 0 5px 16px rgba(0, 114, 255, 0.35);
+  }
+  .inv-tab:active { transform: scale(0.97); }
+
+  .inventory-empty {
+    text-align: center; padding: 40px 20px; opacity: 0.5;
+  }
+  .inventory-empty .icon { font-size: 3rem; margin-bottom: 10px; }
+  .inventory-empty .text { font-size: 0.9rem; }
+
+  .inventory-list {
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .inv-item {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 14px; padding: 12px 14px;
+    display: flex; align-items: center; gap: 10px;
+    animation: fadeIn 0.25s ease;
+  }
+  .inv-item.promo {
+    border-color: rgba(255, 215, 0, 0.5);
+    background: rgba(255, 215, 0, 0.07);
+  }
+  .inv-item.admin {
+    border-color: rgba(255, 60, 60, 0.6);
+    background: rgba(255, 60, 60, 0.08);
+    box-shadow: 0 0 15px rgba(255, 60, 60, 0.15);
+  }
+  .inv-item.case-item {
+    border-color: rgba(0, 198, 255, 0.5);
+    background: rgba(0, 198, 255, 0.07);
+  }
+  .inv-item.case-item.legendary {
+    border-color: rgba(255, 215, 0, 0.7);
+    background: rgba(255, 215, 0, 0.1);
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.25);
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .inv-item .flag { font-size: 1.6rem; flex-shrink: 0; }
+  .inv-item .info { flex: 1; min-width: 0; }
+  .inv-item .num {
+    font-size: 1rem; font-weight: 700;
+    word-break: break-all; line-height: 1.3;
+  }
+  .inv-item.admin .num { color: #ff8b8b; }
+  .inv-item .meta {
+    font-size: 0.7rem; opacity: 0.55; margin-top: 2px;
+  }
+  .inv-item .promo-mark { color: #ffd700; font-weight: 700; }
+  .inv-item .admin-mark { color: #ff6b6b; font-weight: 700; }
+  .inv-item .case-mark { color: #00c6ff; font-weight: 700; }
+  .inv-item .del-btn {
+    background: rgba(255, 107, 107, 0.15);
+    border: 1px solid rgba(255, 107, 107, 0.4);
+    color: #ff8b8b; width: 34px; height: 34px;
+    border-radius: 10px; font-size: 1rem; cursor: pointer;
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+  }
+  .inv-item .del-btn:active { background: rgba(255, 107, 107, 0.35); }
+  .inv-item .copy-icon-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff; width: 34px; height: 34px; border-radius: 10px;
+    font-size: 0.9rem; cursor: pointer; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+  }
+  .inv-item .copy-icon-btn:active { background: rgba(255, 255, 255, 0.2); }
+  .inv-count {
+    text-align: center; font-size: 0.75rem;
+    opacity: 0.5; margin-top: 16px;
+  }
+  .clear-all-btn {
+    width: 100%; margin-top: 12px; padding: 11px;
+    border: 1px solid rgba(255, 107, 107, 0.4);
+    background: rgba(255, 107, 107, 0.1);
+    border-radius: 12px; color: #ff8b8b;
+    font-size: 0.85rem; font-weight: 600;
+    cursor: pointer; transition: background 0.2s;
+  }
+  .clear-all-btn:active { background: rgba(255, 107, 107, 0.25); }
+
+  /* ===== Промокоды ===== */
+  .promo-input-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .promo-input {
+    flex: 1; padding: 14px 16px; border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(0, 0, 0, 0.3); color: #fff; font-size: 1rem;
+    outline: none; text-transform: uppercase; letter-spacing: 1px;
+    font-weight: 600; min-width: 0; transition: border 0.2s;
+  }
+  .promo-input::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+    text-transform: none; letter-spacing: 0;
+    font-weight: 400;
+  }
+  .promo-input:focus { border-color: #ffd700; }
+  .promo-activate-btn {
+    padding: 14px 20px; border: none; border-radius: 14px;
+    font-size: 0.9rem; font-weight: 700; color: #000;
+    background: linear-gradient(135deg, #ffd700, #ff9500);
+    cursor: pointer; box-shadow: 0 5px 16px rgba(255, 165, 0, 0.4);
+    flex-shrink: 0; transition: transform 0.15s;
+  }
+  .promo-activate-btn:active { transform: scale(0.96); }
+  .promo-hint {
+    font-size: 0.75rem; opacity: 0.6;
+    text-align: center; margin-bottom: 16px; line-height: 1.4;
+  }
+  .promo-activated-list {
+    display: flex; flex-direction: column; gap: 8px; margin-top: 4px;
+  }
+  .promo-item {
+    background: rgba(255, 215, 0, 0.08);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    border-radius: 12px; padding: 10px 14px;
+    display: flex; justify-content: space-between;
+    align-items: center; gap: 10px;
+  }
+  .promo-item.admin {
+    background: rgba(255, 60, 60, 0.1);
+    border-color: rgba(255, 60, 60, 0.45);
+  }
+  .promo-item.case {
+    background: rgba(0, 198, 255, 0.1);
+    border-color: rgba(0, 198, 255, 0.45);
+  }
+  .promo-item .code {
+    font-weight: 700; font-size: 0.85rem;
+    color: #ffd700; letter-spacing: 0.5px;
+  }
+  .promo-item.admin .code { color: #ff6b6b; }
+  .promo-item.case .code { color: #00c6ff; }
+  .promo-item .num {
+    font-size: 0.85rem; opacity: 0.85; font-weight: 600;
+    word-break: break-all; text-align: right;
+  }
+  .promo-empty {
+    text-align: center; font-size: 0.8rem;
+    opacity: 0.45; padding: 10px 0;
+  }
+
+  /* ===== Кейсы ===== */
+  .cases-grid {
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .case-card {
+    position: relative;
+    border-radius: 16px;
+    padding: 16px;
+    display: flex; align-items: center; gap: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+    transition: all 0.2s;
+  }
+  .case-card.common {
+    background: linear-gradient(135deg, rgba(0, 198, 255, 0.12), rgba(0, 114, 255, 0.06));
+    border-color: rgba(0, 198, 255, 0.35);
+  }
+  .case-card.pro {
+    background: linear-gradient(135deg, rgba(155, 89, 182, 0.18), rgba(142, 68, 173, 0.08));
+    border-color: rgba(155, 89, 182, 0.5);
+  }
+  .case-card.legendary {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.18), rgba(255, 140, 0, 0.08));
+    border-color: rgba(255, 215, 0, 0.6);
+    box-shadow: 0 0 25px rgba(255, 215, 0, 0.25);
+    animation: legendaryGlow 2s ease-in-out infinite;
+  }
+  @keyframes legendaryGlow {
+    0%, 100% { box-shadow: 0 0 25px rgba(255, 215, 0, 0.25); }
+    50% { box-shadow: 0 0 35px rgba(255, 215, 0, 0.45); }
+  }
+  .case-card.locked {
+    opacity: 0.55;
+    filter: grayscale(0.4);
+  }
+  .case-icon {
+    font-size: 2.4rem; flex-shrink: 0;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
+  }
+  .case-info { flex: 1; min-width: 0; }
+  .case-name {
+    font-size: 1rem; font-weight: 700; margin-bottom: 2px;
+  }
+  .case-desc {
+    font-size: 0.7rem; opacity: 0.7; line-height: 1.35;
+  }
+  .case-progress {
+    margin-top: 6px;
+    font-size: 0.7rem; font-weight: 600;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .case-progress .bar {
+    flex: 1; max-width: 120px; height: 5px;
+    border-radius: 3px; background: rgba(255, 255, 255, 0.15);
+    overflow: hidden;
+  }
+  .case-progress .bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00c6ff, #38ef7d);
+    transition: width 0.3s;
+  }
+  .case-open-btn {
+    padding: 11px 16px;
+    border: none; border-radius: 12px;
+    font-size: 0.85rem; font-weight: 700;
+    color: #fff; cursor: pointer;
+    flex-shrink: 0; transition: transform 0.15s, opacity 0.2s;
+    background: linear-gradient(135deg, #00c6ff, #0072ff);
+    box-shadow: 0 5px 16px rgba(0, 114, 255, 0.4);
+  }
+  .case-card.pro .case-open-btn {
+    background: linear-gradient(135deg, #9b59b6, #6c3483);
+    box-shadow: 0 5px 16px rgba(155, 89, 182, 0.4);
+  }
+  .case-card.legendary .case-open-btn {
+    background: linear-gradient(135deg, #ffd700, #ff8c00);
+    color: #000;
+    box-shadow: 0 5px 16px rgba(255, 165, 0, 0.5);
+  }
+  .case-open-btn:active { transform: scale(0.96); }
+  .case-open-btn:disabled {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: rgba(255, 255, 255, 0.4) !important;
+    box-shadow: none !important;
+    cursor: not-allowed;
+  }
+
+  /* ===== Рулетка (CS:GO) ===== */
+  .roulette-modal {
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    display: none; align-items: center; justify-content: center;
+    z-index: 150; padding: 16px;
+    flex-direction: column;
+  }
+  .roulette-modal.active { display: flex; }
+
+  .roulette-title {
+    font-size: 1.2rem; font-weight: 700;
+    margin-bottom: 20px; text-align: center;
+  }
+
+  .roulette-container {
+    position: relative;
+    width: 100%; max-width: 420px;
+    height: 130px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .roulette-container.legendary {
+    border-color: rgba(255, 215, 0, 0.6);
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
+  }
+  .roulette-container.pro {
+    border-color: rgba(155, 89, 182, 0.6);
+    box-shadow: 0 0 30px rgba(155, 89, 182, 0.35);
+  }
+
+  .roulette-strip {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    will-change: transform;
+    transition: transform 0s;
+  }
+  .roulette-strip.animating {
+    transition: transform 4.2s cubic-bezier(0.15, 0.9, 0.25, 1);
+  }
+
+  .roulette-item {
+    flex-shrink: 0;
+    width: 120px; height: 90px;
+    margin: 0 4px;
+    border-radius: 10px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 4px; padding: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    font-size: 0.7rem; font-weight: 700;
+    text-align: center; word-break: break-all;
+    line-height: 1.2;
+  }
+  .roulette-item.common { border-color: rgba(0, 198, 255, 0.4); }
+  .roulette-item.rare {
+    border-color: rgba(155, 89, 182, 0.7);
+    background: rgba(155, 89, 182, 0.15);
+  }
+  .roulette-item.legendary {
+    border-color: rgba(255, 215, 0, 0.8);
+    background: rgba(255, 215, 0, 0.15);
+    box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+  }
+  .roulette-item .flag { font-size: 1.2rem; }
+  .roulette-item .num { font-size: 0.65rem; }
+
+  .roulette-pointer {
+    position: absolute;
+    top: 0; bottom: 0;
+    left: 50%; width: 3px;
+    background: linear-gradient(180deg, transparent, #ff3c3c 20%, #ff3c3c 80%, transparent);
+    transform: translateX(-50%);
+    z-index: 5;
+    box-shadow: 0 0 12px rgba(255, 60, 60, 0.9);
+    pointer-events: none;
+  }
+  .roulette-pointer::before, .roulette-pointer::after {
+    content: '';
+    position: absolute;
+    left: 50%; transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+  }
+  .roulette-pointer::before {
+    top: -2px;
+    border-top: 10px solid #ff3c3c;
+  }
+  .roulette-pointer::after {
+    bottom: -2px;
+    border-bottom: 10px solid #ff3c3c;
+  }
+
+  .roulette-result {
+    text-align: center;
+    margin-bottom: 20px;
+    min-height: 60px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 6px;
+    opacity: 0; transition: opacity 0.4s;
+  }
+  .roulette-result.show { opacity: 1; }
+  .roulette-result .res-num {
+    font-size: 1.5rem; font-weight: 800;
+    word-break: break-all; letter-spacing: 0.5px;
+  }
+  .roulette-result .res-label {
+    font-size: 0.75rem; opacity: 0.7;
+  }
+  .roulette-result.legendary .res-num {
+    color: #ffd700;
+    text-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+  }
+  .roulette-result.rare .res-num {
+    color: #c39bd3;
+    text-shadow: 0 0 15px rgba(155, 89, 182, 0.7);
+  }
+
+  .roulette-claim-btn {
+    padding: 15px 40px;
+    border: none; border-radius: 14px;
+    font-size: 1rem; font-weight: 700;
+    color: #fff; cursor: pointer;
+    background: linear-gradient(135deg, #11998e, #38ef7d);
+    box-shadow: 0 8px 24px rgba(56, 239, 125, 0.4);
+    transition: transform 0.15s, opacity 0.3s;
+    opacity: 0; pointer-events: none;
+  }
+  .roulette-claim-btn.show { opacity: 1; pointer-events: auto; }
+  .roulette-claim-btn:active { transform: scale(0.97); }
+
+  .roulette-skip-btn {
+    margin-top: 10px;
+    padding: 8px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: transparent; border-radius: 10px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.75rem; font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* ===== Тост ===== */
+  .toast {
+    position: fixed; bottom: 30px; left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: rgba(0, 0, 0, 0.85); color: #fff;
+    padding: 12px 22px; border-radius: 30px;
+    font-size: 0.9rem; opacity: 0;
+    transition: all 0.3s; pointer-events: none;
+    z-index: 200; max-width: 90vw; text-align: center;
+  }
+  .toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+  .toast.gold {
+    background: linear-gradient(135deg, #ffd700, #ff9500);
+    color: #000; font-weight: 700;
+  }
+  .toast.admin {
+    background: linear-gradient(135deg, #ff3c3c, #a80000);
+    color: #fff; font-weight: 700;
+    box-shadow: 0 0 25px rgba(255, 60, 60, 0.6);
+  }
+  .toast.case {
+    background: linear-gradient(135deg, #00c6ff, #0072ff);
+    color: #fff; font-weight: 700;
+  }
+
+  /* ===== Темы ===== */
+  body.theme-ocean {
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #6a3093 100%);
+  }
+  body.theme-midnight {
+    background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+  }
+  body.theme-sunset {
+    background: linear-gradient(135deg, #ff512f 0%, #dd2476 100%);
+  }
+  body.theme-forest {
+    background: linear-gradient(135deg, #134e5e 0%, #2c5364 50%, #71b280 100%);
+  }
+  body.theme-candy {
+    background: linear-gradient(135deg, #ee9ca7 0%, #ffdde1 100%);
+    color: #3a2a3a;
+  }
+  body.theme-candy .app {
+    background: rgba(255, 255, 255, 0.5);
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+  body.theme-candy .nick,
+  body.theme-candy h1,
+  body.theme-candy .header .nick,
+  body.theme-candy .number,
+  body.theme-candy .case-name {
+    color: #3a2a3a;
+  }
+  body.theme-dark {
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #2d2d2d 100%);
+  }
+  body.theme-cyberpunk {
+    background: linear-gradient(135deg, #120458 0%, #ff0f7b 100%);
+  }
+  body.theme-gold {
+    background: linear-gradient(135deg, #42275a 0%, #734b6d 50%, #ffd700 100%);
+  }
+</style>
+</head>
+<body class="theme-ocean">
+
+<div class="app">
+
+  <!-- ========== Экран входа ========== -->
+  <div class="login-screen" id="loginScreen">
+    <h1>📱 Генератор номеров</h1>
+    <div class="subtitle">Придумай себе ник для входа</div>
+
+    <div class="name-fields">
+      <label for="firstName">Имя (на английском)</label>
+      <input type="text" id="firstName" placeholder="Например: John" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <label for="lastName">Фамилия (на английском)</label>
+      <input type="text" id="lastName" placeholder="Например: Smith" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false">
+    </div>
+
+    <div class="nick-preview" id="nickPreview">
+      <span class="dim">Твой ник появится здесь</span>
+    </div>
+
+    <button class="start-btn" id="startBtn" disabled>Войти в игру</button>
+  </div>
+
+  <!-- ========== Экран игры ========== -->
+  <div class="game-screen" id="gameScreen">
+    <div class="header">
+      <div class="nick" id="nickHeader">
+        <small>Игрок</small>
+        <span id="nickText">—</span>
+      </div>
+      <button class="icon-btn" id="promoBtn" title="Промокоды">🎁</button>
+      <button class="icon-btn" id="inventoryBtn" title="Инвентарь">🎒
+        <span class="inv-badge hidden" id="invBadge">0</span>
+      </button>
+      <button class="icon-btn" id="settingsBtn" title="Настройки">⚙️</button>
+      <button class="icon-btn" id="logoutBtn" title="Выйти">🚪</button>
+    </div>
+
+    <h1 class="game-title">🎲 Генератор номеров</h1>
+    <div class="game-subtitle">Жми кнопку и получай случайный номер</div>
+
+    <div class="badge-wrap">
+      <div class="current-country-badge" id="countryBadge">
+        <span class="flag">🇷🇺</span>
+        <span id="countryName">Россия</span>
+      </div>
+    </div>
+
+    <div class="display" id="numberBox">
+      <div class="number" id="numberDisplay">
+        <span class="placeholder">Нажми «Генерировать»</span>
+      </div>
+    </div>
+
+    <button class="gen-btn" id="genBtn">🎲 Генерировать</button>
+
+    <div class="gen-progress" id="genProgress">
+      <span id="genCountText">0 / 40</span>
+      <div class="bar"><div class="bar-fill" id="genBarFill" style="width:0%"></div></div>
+      <span>до кейса</span>
+    </div>
+
+    <div class="action-row">
+      <button class="action-btn save" id="saveBtn" disabled>💾 Сохранить</button>
+      <button class="action-btn" id="copyBtn">📋 Копировать</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ========== Модалка: Настройки ========== -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>⚙️ Настройки</h2>
+      <button class="close-btn" id="closeSettings">✕</button>
+    </div>
+
+    <div class="settings-section">
+      <h3>🎨 Тема</h3>
+      <div class="theme-grid" id="themeGrid">
+        <button class="theme-btn" data-theme="theme-ocean">
+          <div class="swatch" style="background:linear-gradient(135deg,#1e3c72,#6a3093)"></div>
+          <span>Океан</span>
+        </button>
+        <button class="theme-btn" data-theme="theme-midnight">
+          <div class="swatch" style="background:linear-gradient(135deg,#0f0c29,#24243e)"></div>
+          <span>Полночь</span>
+        </button>
+        <button class="theme-btn" data-theme="theme-sunset">
+          <div class="swatch" style="background:linear-gradient(135deg,#ff512f,#dd2476)"></div>
+          <span>Закат</span>
+        </button>
+        <button class="theme-btn" data-theme="theme-forest">
+          <div class="swatch" style="background:linear-gradient(135deg,#134e5e,#71b280)"></div>
+          <span>Лес</span>
+        </button>
+        <button class="theme-btn" data-theme="theme-candy">
+          <div class="swatch" style="background:linear-gradient(135deg,#ee9ca7,#ffdde1)"></div>
+          <span>Карамель</span>
+        </button>
+        <button class="theme-btn" data-theme="theme-dark">
+          <div class="swatch" style="background:linear-gradient(135deg,#0a0a0a,#2d2d2d)"></div>
+          <span>Тьма</span>
+        </button>
+        <button class="theme-btn" data-theme="theme-cyberpunk">
+          <div class="swatch" style="background:linear-gradient(135deg,#120458,#ff0f7b)"></div>
+          <span>Киберпанк</span>
+        </button>
+        <button class="theme-btn" data-theme="theme-gold">
+          <div class="swatch" style="background:linear-gradient(135deg,#42275a,#ffd700)"></div>
+          <span>Золото</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h3>🌍 Страна</h3>
+      <div class="country-grid" id="countryGrid">
+        <button class="country-btn" data-country="ru"><span class="flag">🇷🇺</span><span>Россия</span></button>
+        <button class="country-btn" data-country="no"><span class="flag">🇳🇴</span><span>Норвегия</span></button>
+        <button class="country-btn" data-country="se"><span class="flag">🇸🇪</span><span>Швеция</span></button>
+        <button class="country-btn" data-country="fi"><span class="flag">🇫🇮</span><span>Финляндия</span></button>
+        <button class="country-btn" data-country="pl"><span class="flag">🇵🇱</span><span>Польша</span></button>
+        <button class="country-btn" data-country="de"><span class="flag">🇩🇪</span><span>Германия</span></button>
+        <button class="country-btn" data-country="ie"><span class="flag">🇮🇪</span><span>Ирландия</span></button>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h3>🔢 Шрифт цифр</h3>
+      <div class="font-grid" id="fontGrid">
+        <button class="font-btn" data-font="font-system">
+          <span class="preview font-system">+7 (912)</span>
+          <span class="name">Системный</span>
+        </button>
+        <button class="font-btn" data-font="font-mono">
+          <span class="preview font-mono">+7 (912)</span>
+          <span class="name">Mono</span>
+        </button>
+        <button class="font-btn" data-font="font-orbit">
+          <span class="preview font-orbit">+7 (912)</span>
+          <span class="name">Orbitron</span>
+        </button>
+        <button class="font-btn" data-font="font-pixel">
+          <span class="preview font-pixel">+7 (912)</span>
+          <span class="name">Pixel</span>
+        </button>
+        <button class="font-btn" data-font="font-courier">
+          <span class="preview font-courier">+7 (912)</span>
+          <span class="name">Courier</span>
+        </button>
+        <button class="font-btn" data-font="font-tech">
+          <span class="preview font-tech">+7 (912)</span>
+          <span class="name">Tech</span>
+        </button>
+        <button class="font-btn" data-font="font-serif">
+          <span class="preview font-serif">+7 (912)</span>
+          <span class="name">Serif</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== Модалка: Инвентарь ========== -->
+<div class="modal-overlay" id="inventoryModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>🎒 Инвентарь</h2>
+      <button class="close-btn" id="closeInventory">✕</button>
+    </div>
+
+    <div class="inv-tabs">
+      <button class="inv-tab active" data-tab="numbers" id="tabNumbers">📱 Номера</button>
+      <button class="inv-tab" data-tab="cases" id="tabCases">🎁 Кейсы</button>
+    </div>
+
+    <div id="inventoryContent"></div>
+  </div>
+</div>
+
+<!-- ========== Модалка: Промокоды ========== -->
+<div class="modal-overlay" id="promoModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>🎁 Промокоды</h2>
+      <button class="close-btn" id="closePromo">✕</button>
+    </div>
+
+    <div class="promo-input-row">
+      <input type="text" class="promo-input" id="promoInput" placeholder="Введи промокод..." maxlength="30" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      <button class="promo-activate-btn" id="promoActivateBtn">Активировать</button>
+    </div>
+    <div class="promo-hint">Промокод даёт уникальный номер или кейс. Каждый можно активировать только один раз.</div>
+
+    <div class="settings-section" style="margin-bottom:0;">
+      <h3>✅ Активированные</h3>
+      <div id="activatedPromoList" class="promo-activated-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== Модалка: Рулетка кейса ========== -->
+<div class="roulette-modal" id="rouletteModal">
+  <div class="roulette-title" id="rouletteTitle">Открытие кейса...</div>
+  <div class="roulette-container" id="rouletteContainer">
+    <div class="roulette-pointer"></div>
+    <div class="roulette-strip" id="rouletteStrip"></div>
+  </div>
+  <div class="roulette-result" id="rouletteResult">
+    <div class="res-num" id="rouletteResultNum"></div>
+    <div class="res-label" id="rouletteResultLabel"></div>
+  </div>
+  <button class="roulette-claim-btn" id="rouletteClaimBtn">📥 Забрать в инвентарь</button>
+  <button class="roulette-skip-btn" id="rouletteSkipBtn">Пропустить анимацию</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ============ Промокоды ============
+  const PROMO_CODES = {
+    // Обычные
+    'KOKOS2027':  { number: '+4766677000',  type: 'promo' },
+    'RUSSIAN777': { number: '+79990061010', type: 'promo' },
+    'NORSKA4':    { number: '+4700047470',  type: 'promo' },
+    'PRO100':     { number: '+79991001001', type: 'promo' },
+    'WINNER':     { number: '+79995555555', type: 'promo' },
+    'MASOL1211':  { number: '+0099',        type: 'promo' },
+
+    // Админские
+    'ADMIN':      { number: '+70000000001', type: 'admin' },
+    'SECRET':     { number: '+79990000007', type: 'admin' },
+    'DEV777':     { number: '+79990000077', type: 'admin' },
+    'GOLDEN':     { number: '+79999999999', type: 'admin' },
+    'LUCKY777':   { number: '+7777777777',  type: 'admin' },
+    'ZEROS':      { number: '+70000000000', type: 'admin' },
+    'BEAUTY':     { number: '+71234567890', type: 'admin' },
+
+    // Легендарный кейс (новый код)
+    'LEGACY900':  { case: 'legendary', type: 'case' }
+  };
+
+  // ============ Кейсы ============
+  const CASE_TYPES = {
+    common: {
+      id: 'common',
+      name: 'Обычный кейс',
+      icon: '📦',
+      desc: 'Обычные и красивые номера любой страны',
+      class: 'common'
+    },
+    pro: {
+      id: 'pro',
+      name: 'Кейс Профессионала',
+      icon: '💼',
+      desc: 'Красивые номера с редкими комбинациями',
+      class: 'pro'
+    },
+    legendary: {
+      id: 'legendary',
+      name: 'Легендарный кейс',
+      icon: '👑',
+      desc: 'Только эпические и легендарные комбинации',
+      class: 'legendary'
+    }
+  };
+
+  // Веса "красоты" номеров для каждого кейса.
+  // Ключ = тип красоты, значение = вес.
+  const CASE_FILLERS = {
+    common: {
+      nice: 60,      // красивые пары/тройки
+      rare: 30,      // редкие последовательности
+      epic: 10       // эпические (7777777 и т.п.)
+    },
+    pro: {
+      rare: 45,      // редкие
+      epic: 40,      // эпические
+      legendary: 15  // легендарные
+    },
+    legendary: {
+      epic: 45,      // эпические
+      legendary: 55  // легендарные
+    }
+  };
+
+  // ============ Состояние ============
+  let playerNick = '';
+  let currentCountry = 'ru';
+  let currentFont = 'font-system';
+  let currentTheme = 'theme-ocean';
+  let currentNumber = '';
+  let currentNumberType = null;
+  let inventory = [];
+  let activatedPromos = {};
+  let caseInventory = [];
+  let genCount = 0;
+  let currentInvTab = 'numbers';
+
+  const STORAGE_INV = 'phone_gen_inventory';
+  const STORAGE_PROMO = 'phone_gen_activated_promos';
+  const STORAGE_CASES = 'phone_gen_case_inventory';
+  const STORAGE_GEN = 'phone_gen_count';
+  const STORAGE_THEME = 'phone_gen_theme';
+
+  // ============ Звуки ============
+  let audioCtx = null;
+  function getAudioCtx() {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) audioCtx = new AC();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(() => {});
+    }
+    return audioCtx;
+  }
+
+  function playPromoActivateSound(type = 'promo') {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0.0001, now);
+    master.gain.exponentialRampToValueAtTime(0.28, now + 0.05);
+    master.gain.exponentialRampToValueAtTime(0.18, now + 0.45);
+    master.gain.exponentialRampToValueAtTime(0.0001, now + 1.4);
+    master.connect(ctx.destination);
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(2200, now);
+    lp.frequency.exponentialRampToValueAtTime(900, now + 1.2);
+    lp.Q.value = 0.6;
+    lp.connect(master);
+    const baseFreqs = type === 'admin'
+      ? [523.25, 659.25, 783.99, 1046.50]
+      : [783.99, 1046.50, 1318.51];
+    baseFreqs.forEach((freq, i) => {
+      const t = now + i * 0.09;
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t);
+      const lfo = ctx.createOscillator();
+      const lfoGain = ctx.createGain();
+      lfo.frequency.value = 5;
+      lfoGain.gain.value = freq * 0.004;
+      lfo.connect(lfoGain);
+      lfoGain.connect(osc.frequency);
+      lfo.start(t); lfo.stop(t + 1.1);
+      const noteGain = ctx.createGain();
+      noteGain.gain.setValueAtTime(0.0001, t);
+      noteGain.gain.exponentialRampToValueAtTime(0.5, t + 0.06);
+      noteGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
+      const sub = ctx.createOscillator();
+      sub.type = 'sine';
+      sub.frequency.setValueAtTime(freq / 2, t);
+      const subGain = ctx.createGain();
+      subGain.gain.setValueAtTime(0.0001, t);
+      subGain.gain.exponentialRampToValueAtTime(0.2, t + 0.08);
+      subGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.85);
+      sub.connect(subGain);
+      subGain.connect(lp);
+      sub.start(t); sub.stop(t + 1);
+      osc.connect(noteGain);
+      noteGain.connect(lp);
+      osc.start(t); osc.stop(t + 1);
+    });
+    const noiseLen = 0.6;
+    const noiseBuf = ctx.createBuffer(1, ctx.sampleRate * noiseLen, ctx.sampleRate);
+    const noiseData = noiseBuf.getChannelData(0);
+    for (let i = 0; i < noiseData.length; i++) {
+      noiseData[i] = (Math.random() * 2 - 1) * 0.3;
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuf;
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = 'highpass';
+    noiseFilter.frequency.value = 3000;
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.0001, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.035, now + 0.1);
+    noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(master);
+    noise.start(now); noise.stop(now + noiseLen);
+  }
+
+  function playTickSound() {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(1200, now);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.04, now);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
+    osc.connect(g);
+    g.connect(ctx.destination);
+    osc.start(now); osc.stop(now + 0.04);
+  }
+
+  // ============ Страны ============
+  const countries = {
+    ru: { flag: '🇷🇺', name: 'Россия' },
+    no: { flag: '🇳🇴', name: 'Норвегия' },
+    se: { flag: '🇸🇪', name: 'Швеция' },
+    fi: { flag: '🇫🇮', name: 'Финляндия' },
+    pl: { flag: '🇵🇱', name: 'Польша' },
+    de: { flag: '🇩🇪', name: 'Германия' },
+    ie: { flag: '🇮🇪', name: 'Ирландия' }
+  };
+
+  // ============ DOM ============
+  const loginScreen = document.getElementById('loginScreen');
+  const gameScreen = document.getElementById('gameScreen');
+  const firstNameInput = document.getElementById('firstName');
+  const lastNameInput = document.getElementById('lastName');
+  const nickPreview = document.getElementById('nickPreview');
+  const startBtn = document.getElementById('startBtn');
+  const nickText = document.getElementById('nickText');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const settingsBtn = document.getElementById('settingsBtn');
+  const inventoryBtn = document.getElementById('inventoryBtn');
+  const promoBtn = document.getElementById('promoBtn');
+  const invBadge = document.getElementById('invBadge');
+  const numberDisplay = document.getElementById('numberDisplay');
+  const numberBox = document.getElementById('numberBox');
+  const genBtn = document.getElementById('genBtn');
+  const saveBtn = document.getElementById('saveBtn');
+  const copyBtn = document.getElementById('copyBtn');
+  const toast = document.getElementById('toast');
+  const settingsModal = document.getElementById('settingsModal');
+  const closeSettings = document.getElementById('closeSettings');
+  const inventoryModal = document.getElementById('inventoryModal');
+  const closeInventory = document.getElementById('closeInventory');
+  const inventoryContent = document.getElementById('inventoryContent');
+  const promoModal = document.getElementById('promoModal');
+  const closePromo = document.getElementById('closePromo');
+  const promoInput = document.getElementById('promoInput');
+  const promoActivateBtn = document.getElementById('promoActivateBtn');
+  const activatedPromoList = document.getElementById('activatedPromoList');
+  const countryBadge = document.getElementById('countryBadge');
+  const countryName = document.getElementById('countryName');
+  const genCountText = document.getElementById('genCountText');
+  const genBarFill = document.getElementById('genBarFill');
+  const themeGrid = document.getElementById('themeGrid');
+  const tabNumbers = document.getElementById('tabNumbers');
+  const tabCases = document.getElementById('tabCases');
+  const rouletteModal = document.getElementById('rouletteModal');
+  const rouletteTitle = document.getElementById('rouletteTitle');
+  const rouletteContainer = document.getElementById('rouletteContainer');
+  const rouletteStrip = document.getElementById('rouletteStrip');
+  const rouletteResult = document.getElementById('rouletteResult');
+  const rouletteResultNum = document.getElementById('rouletteResultNum');
+  const rouletteResultLabel = document.getElementById('rouletteResultLabel');
+  const rouletteClaimBtn = document.getElementById('rouletteClaimBtn');
+  const rouletteSkipBtn = document.getElementById('rouletteSkipBtn');
+
+  // ============ Утилиты ============
+  function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+  function randDigits(count) {
+    let s = '';
+    for (let i = 0; i < count; i++) s += randInt(0, 9);
+    return s;
+  }
+  function sanitizeName(str) { return str.replace(/[^a-zA-Z]/g, ''); }
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
+  function pick(arr) { return arr[randInt(0, arr.length - 1)]; }
+  function pickWeighted(weightsObj) {
+    const entries = Object.entries(weightsObj);
+    const total = entries.reduce((s, [, w]) => s + w, 0);
+    let r = Math.random() * total;
+    for (const [key, w] of entries) {
+      if (r < w) return key;
+      r -= w;
+    }
+    return entries[entries.length - 1][0];
+  }
+
+  // ============ localStorage ============
+  function loadInventory() {
+    try {
+      const raw = localStorage.getItem(STORAGE_INV);
+      inventory = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(inventory)) inventory = [];
+    } catch (e) { inventory = []; }
+  }
+  function saveInventory() {
+    try { localStorage.setItem(STORAGE_INV, JSON.stringify(inventory)); } catch (e) {}
+  }
+  function loadPromos() {
+    try {
+      const raw = localStorage.getItem(STORAGE_PROMO);
+      activatedPromos = raw ? JSON.parse(raw) : {};
+      if (typeof activatedPromos !== 'object' || activatedPromos === null) activatedPromos = {};
+    } catch (e) { activatedPromos = {}; }
+  }
+  function savePromos() {
+    try { localStorage.setItem(STORAGE_PROMO, JSON.stringify(activatedPromos)); } catch (e) {}
+  }
+  function loadCases() {
+    try {
+      const raw = localStorage.getItem(STORAGE_CASES);
+      caseInventory = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(caseInventory)) caseInventory = [];
+    } catch (e) { caseInventory = []; }
+  }
+  function saveCases() {
+    try { localStorage.setItem(STORAGE_CASES, JSON.stringify(caseInventory)); } catch (e) {}
+  }
+  function loadGenCount() {
+    try {
+      const raw = localStorage.getItem(STORAGE_GEN);
+      genCount = raw ? parseInt(raw, 10) : 0;
+      if (isNaN(genCount)) genCount = 0;
+    } catch (e) { genCount = 0; }
+  }
+  function saveGenCount() {
+    try { localStorage.setItem(STORAGE_GEN, String(genCount)); } catch (e) {}
+  }
+  function loadTheme() {
+    try {
+      const t = localStorage.getItem(STORAGE_THEME);
+      if (t && ['theme-ocean','theme-midnight','theme-sunset','theme-forest','theme-candy','theme-dark','theme-cyberpunk','theme-gold'].includes(t)) {
+        currentTheme = t;
+      }
+    } catch (e) {}
+    document.body.className = currentTheme;
+    document.querySelectorAll('#themeGrid .theme-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.theme === currentTheme);
+    });
+  }
+  function saveTheme() {
+    try { localStorage.setItem(STORAGE_THEME, currentTheme); } catch (e) {}
+  }
+
+  function updateInvBadge() {
+    const total = inventory.length + caseInventory.length;
+    if (total > 0) {
+      invBadge.textContent = total;
+      invBadge.classList.remove('hidden');
+    } else {
+      invBadge.classList.add('hidden');
+    }
+  }
+
+  function updateGenProgress() {
+    const target = 40;
+    const count = Math.min(genCount, target);
+    genCountText.textContent = count + ' / ' + target;
+    genBarFill.style.width = (count / target * 100) + '%';
+  }
+
+  // ============ Инвентарь ============
+  function addToInventory() {
+    if (!currentNumber) return;
+    if (inventory.some(item => item.number === currentNumber)) {
+      showToast('Этот номер уже в инвентаре 🤔');
+      return;
+    }
+    inventory.unshift({
+      id: Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+      number: currentNumber,
+      country: currentNumberType ? null : currentCountry,
+      type: currentNumberType,
+      timestamp: Date.now()
+    });
+    saveInventory();
+    updateInvBadge();
+    if (currentNumberType === 'admin') {
+      showToast('Админский номер сохранён! 👑', 'admin');
+    } else if (currentNumberType === 'promo') {
+      showToast('Промо-номер сохранён! ⭐', 'gold');
+    } else if (currentNumberType === 'case') {
+      showToast('Номер из кейса сохранён! 🎁', 'case');
+    } else {
+      showToast('Номер сохранён в инвентарь 💾');
+    }
+    saveBtn.disabled = true;
+  }
+
+  function removeFromInventory(id) {
+    inventory = inventory.filter(item => item.id !== id);
+    saveInventory();
+    updateInvBadge();
+    renderInventory();
+  }
+
+  function clearInventory() {
+    if (inventory.length === 0) return;
+    if (!confirm('Удалить все сохранённые номера?')) return;
+    inventory = [];
+    saveInventory();
+    updateInvBadge();
+    renderInventory();
+    showToast('Инвентарь очищен 🗑️');
+  }
+
+  function formatDate(ts) {
+    const d = new Date(ts);
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return dd + '.' + mm + ' ' + hh + ':' + min;
+  }
+
+  function renderInventory() {
+    if (currentInvTab === 'cases') {
+      renderCasesTab();
+    } else {
+      renderNumbersTab();
+    }
+  }
+
+  function renderNumbersTab() {
+    if (inventory.length === 0) {
+      inventoryContent.innerHTML = `
+        <div class="inventory-empty">
+          <div class="icon">🎒</div>
+          <div class="text">Инвентарь пуст<br>Сгенерируй номер и нажми «Сохранить»</div>
+        </div>`;
+      return;
+    }
+
+    let html = '<div class="inventory-list">';
+    inventory.forEach(item => {
+      let c, cls, metaExtra;
+      if (item.type === 'admin') {
+        c = { flag: '👑', name: 'Админ' };
+        cls = 'inv-item admin';
+        metaExtra = ' · <span class="admin-mark">ADMIN</span>';
+      } else if (item.type === 'promo') {
+        c = { flag: '⭐', name: 'Промокод' };
+        cls = 'inv-item promo';
+        metaExtra = ' · <span class="promo-mark">PROMO</span>';
+      } else if (item.type === 'case') {
+        c = { flag: '🎁', name: 'Кейс' };
+        cls = item.tier === 'legendary' ? 'inv-item case-item legendary' : 'inv-item case-item';
+        metaExtra = ' · <span class="case-mark">CASE</span>';
+      } else {
+        c = countries[item.country] || { flag: '🌐', name: '?' };
+        cls = 'inv-item';
+        metaExtra = '';
+      }
+      html += `
+        <div class="${cls}" data-id="${escapeHtml(item.id)}">
+          <span class="flag">${c.flag}</span>
+          <div class="info">
+            <div class="num">${escapeHtml(item.number)}</div>
+            <div class="meta">${escapeHtml(c.name)}${metaExtra} · ${formatDate(item.timestamp)}</div>
+          </div>
+          <button class="copy-icon-btn" data-action="copy" data-id="${escapeHtml(item.id)}" title="Копировать">📋</button>
+          <button class="del-btn" data-action="delete" data-id="${escapeHtml(item.id)}" title="Удалить">🗑️</button>
+        </div>`;
+    });
+    html += '</div>';
+    html += `<div class="inv-count">Всего: ${inventory.length}</div>`;
+    html += `<button class="clear-all-btn" id="clearAllBtn">🗑️ Очистить всё</button>`;
+    inventoryContent.innerHTML = html;
+
+    inventoryContent.querySelectorAll('[data-action="delete"]').forEach(btn => {
+      btn.addEventListener('click', () => removeFromInventory(btn.dataset.id));
+    });
+    inventoryContent.querySelectorAll('[data-action="copy"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = inventory.find(i => i.id === btn.dataset.id);
+        if (!item) return;
+        copyToClipboard(item.number, 'Номер скопирован! ✅');
+      });
+    });
+    const clearBtn = document.getElementById('clearAllBtn');
+    if (clearBtn) clearBtn.addEventListener('click', clearInventory);
+  }
+
+  function renderCasesTab() {
+    let html = '<div class="cases-grid">';
+
+    Object.values(CASE_TYPES).forEach(ct => {
+      const owned = caseInventory.filter(c => c.type === ct.id).length;
+      const canOpen = owned > 0;
+      let extra = '';
+      if (ct.id === 'common') {
+        extra = `<div class="case-progress">
+          <div class="bar"><div class="bar-fill" style="width:${Math.min(genCount,40)/40*100}%"></div></div>
+          <span>${Math.min(genCount,40)}/40</span>
+        </div>`;
+      }
+      if (!canOpen && ct.id !== 'common') {
+        extra += `<div class="case-desc" style="margin-top:6px;color:rgba(255,255,255,0.5)">Нужен промокод</div>`;
+      }
+      if (owned > 0) {
+        extra += `<div class="case-desc" style="margin-top:6px;color:#38ef7d;font-weight:700">У тебя: ${owned} шт.</div>`;
+      }
+      html += `
+        <div class="case-card ${ct.class} ${!canOpen ? 'locked' : ''}">
+          <div class="case-icon">${ct.icon}</div>
+          <div class="case-info">
+            <div class="case-name">${ct.name}</div>
+            <div class="case-desc">${ct.desc}</div>
+            ${extra}
+          </div>
+          <button class="case-open-btn" data-case="${ct.id}" ${!canOpen ? 'disabled' : ''}>Открыть</button>
+        </div>`;
+    });
+
+    html += '</div>';
+
+    if (caseInventory.length > 0) {
+      html += `<div class="inv-count" style="margin-top:16px">Кейсов в инвентаре: ${caseInventory.length}</div>`;
+    }
+
+    inventoryContent.innerHTML = html;
+
+    inventoryContent.querySelectorAll('.case-open-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const type = btn.dataset.case;
+        openCase(type);
+      });
+    });
+  }
+
+  // ============ Промокоды ============
+  function renderActivatedPromos() {
+    const codes = Object.keys(activatedPromos);
+    if (codes.length === 0) {
+      activatedPromoList.innerHTML = '<div class="promo-empty">Пока ни одного активированного промокода</div>';
+      return;
+    }
+    let html = '';
+    codes.forEach(code => {
+      const data = PROMO_CODES[code];
+      if (!data) return;
+      let cls = 'promo-item';
+      let displayNum = '';
+      if (data.type === 'admin') { cls = 'promo-item admin'; displayNum = data.number; }
+      else if (data.type === 'case') { cls = 'promo-item case'; displayNum = '👑 Легендарный кейс'; }
+      else { displayNum = data.number; }
+      html += `
+        <div class="${cls}">
+          <span class="code">${escapeHtml(code)}</span>
+          <span class="num">${escapeHtml(displayNum)}</span>
+        </div>`;
+    });
+    activatedPromoList.innerHTML = html;
+  }
+
+  function activatePromo() {
+    const raw = promoInput.value.trim();
+    if (!raw) { showToast('Введи промокод'); return; }
+    const code = raw.toUpperCase();
+
+    if (!PROMO_CODES[code]) {
+      showToast('Такого промокода не существует ❌');
+      promoInput.value = '';
+      return;
+    }
+
+    if (activatedPromos[code]) {
+      showToast('Этот промокод уже активирован ⚠️');
+      promoInput.value = '';
+      return;
+    }
+
+    activatedPromos[code] = Date.now();
+    savePromos();
+
+    const data = PROMO_CODES[code];
+
+    // Промокод на кейс
+    if (data.type === 'case') {
+      playPromoActivateSound('admin');
+      caseInventory.push({
+        id: Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+        type: data.case,
+        timestamp: Date.now()
+      });
+      saveCases();
+      updateInvBadge();
+      showToast('👑 Легендарный кейс получен!', 'admin');
+      renderActivatedPromos();
+      promoInput.value = '';
+      setTimeout(() => promoModal.classList.remove('active'), 800);
+      return;
+    }
+
+    // Обычный/админский номер
+    currentNumber = data.number;
+    currentNumberType = data.type;
+
+    playPromoActivateSound(data.type);
+
+    numberBox.classList.remove('promo-display', 'admin-display');
+    const oldTag = numberBox.querySelector('.promo-tag');
+    if (oldTag) oldTag.remove();
+
+    if (data.type === 'admin') {
+      numberBox.classList.add('admin-display');
+      const tag = document.createElement('div');
+      tag.className = 'promo-tag admin';
+      tag.textContent = '👑 ADMIN';
+      numberBox.insertBefore(tag, numberDisplay);
+    } else {
+      numberBox.classList.add('promo-display');
+      const tag = document.createElement('div');
+      tag.className = 'promo-tag';
+      tag.textContent = '⭐ PROMO';
+      numberBox.insertBefore(tag, numberDisplay);
+    }
+
+    numberDisplay.className = 'number ' + currentFont;
+    if (data.type === 'admin') numberDisplay.classList.add('admin-glow');
+    numberDisplay.textContent = currentNumber;
+    numberDisplay.classList.remove('pop');
+    void numberDisplay.offsetWidth;
+    numberDisplay.classList.add('promo-pop');
+
+    saveBtn.disabled = false;
+    renderActivatedPromos();
+    promoInput.value = '';
+
+    if (data.type === 'admin') {
+      showToast('👑 АДМИНСКИЙ промокод активирован!', 'admin');
+    } else {
+      showToast('Промокод активирован! ⭐', 'gold');
+    }
+
+    setTimeout(() => {
+      promoModal.classList.remove('active');
+    }, 800);
+  }
+
+  promoActivateBtn.addEventListener('click', activatePromo);
+  promoInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') activatePromo();
+  });
+  promoBtn.addEventListener('click', () => {
+    renderActivatedPromos();
+    promoModal.classList.add('active');
+    setTimeout(() => promoInput.focus(), 300);
+  });
+  closePromo.addEventListener('click', () => promoModal.classList.remove('active'));
+  promoModal.addEventListener('click', e => {
+    if (e.target === promoModal) promoModal.classList.remove('active');
+  });
+
+  // ============ Вход ============
+  function updateNickPreview() {
+    const first = sanitizeName(firstNameInput.value);
+    const last = sanitizeName(lastNameInput.value);
+    if (first || last) {
+      nickPreview.textContent = (first || '...') + '_' + (last || '...');
+    } else {
+      nickPreview.innerHTML = '<span class="dim">Твой ник появится здесь</span>';
+    }
+    startBtn.disabled = !(first.length >= 2 && last.length >= 2);
+  }
+  firstNameInput.addEventListener('input', updateNickPreview);
+  lastNameInput.addEventListener('input', updateNickPreview);
+
+  startBtn.addEventListener('click', () => {
+    const first = sanitizeName(firstNameInput.value);
+    const last = sanitizeName(lastNameInput.value);
+    if (first.length < 2 || last.length < 2) return;
+    const f = first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
+    const l = last.charAt(0).toUpperCase() + last.slice(1).toLowerCase();
+    playerNick = f + '_' + l;
+    nickText.textContent = playerNick;
+    loginScreen.style.display = 'none';
+    gameScreen.classList.add('active');
+    applyFont();
+    updateCountryBadge();
+    updateInvBadge();
+    updateGenProgress();
+    getAudioCtx();
+  });
+
+  [firstNameInput, lastNameInput].forEach(inp => {
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !startBtn.disabled) startBtn.click();
+    });
+  });
+
+  logoutBtn.addEventListener('click', () => {
+    gameScreen.classList.remove('active');
+    loginScreen.style.display = 'block';
+    firstNameInput.value = '';
+    lastNameInput.value = '';
+    updateNickPreview();
+    resetNumber();
+  });
+
+  function resetNumber() {
+    currentNumber = '';
+    currentNumberType = null;
+    numberBox.classList.remove('promo-display', 'admin-display');
+    const tag = numberBox.querySelector('.promo-tag');
+    if (tag) tag.remove();
+    numberDisplay.className = 'number ' + currentFont;
+    numberDisplay.innerHTML = '<span class="placeholder">Нажми «Генерировать»</span>';
+    saveBtn.disabled = true;
+  }
+
+  // ============ Настройки ============
+  settingsBtn.addEventListener('click', () => settingsModal.classList.add('active'));
+  closeSettings.addEventListener('click', () => settingsModal.classList.remove('active'));
+  settingsModal.addEventListener('click', e => {
+    if (e.target === settingsModal) settingsModal.classList.remove('active');
+  });
+
+  themeGrid.addEventListener('click', e => {
+    const btn = e.target.closest('.theme-btn');
+    if (!btn) return;
+    currentTheme = btn.dataset.theme;
+    document.body.className = currentTheme;
+    document.querySelectorAll('#themeGrid .theme-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.theme === currentTheme);
+    });
+    saveTheme();
+  });
+
+  // ============ Инвентарь ============
+  inventoryBtn.addEventListener('click', () => {
+    currentInvTab = 'numbers';
+    updateTabsUI();
+    renderInventory();
+    inventoryModal.classList.add('active');
+  });
+  closeInventory.addEventListener('click', () => inventoryModal.classList.remove('active'));
+  inventoryModal.addEventListener('click', e => {
+    if (e.target === inventoryModal) inventoryModal.classList.remove('active');
+  });
+
+  function updateTabsUI() {
+    tabNumbers.classList.toggle('active', currentInvTab === 'numbers');
+    tabCases.classList.toggle('active', currentInvTab === 'cases');
+  }
+  tabNumbers.addEventListener('click', () => {
+    currentInvTab = 'numbers';
+    updateTabsUI();
+    renderInventory();
+  });
+  tabCases.addEventListener('click', () => {
+    currentInvTab = 'cases';
+    updateTabsUI();
+    renderInventory();
+  });
+
+  // ============ Страна ============
+  function updateCountryBadge() {
+    const c = countries[currentCountry];
+    countryBadge.querySelector('.flag').textContent = c.flag;
+    countryName.textContent = c.name;
+  }
+  document.querySelectorAll('#countryGrid .country-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#countryGrid .country-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentCountry = btn.dataset.country;
+      updateCountryBadge();
+      resetNumber();
+    });
+  });
+
+  // ============ Шрифт ============
+  function applyFont() {
+    numberDisplay.className = 'number ' + currentFont;
+    if (currentNumberType === 'admin') numberDisplay.classList.add('admin-glow');
+  }
+  document.querySelectorAll('#fontGrid .font-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#fontGrid .font-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFont = btn.dataset.font;
+      applyFont();
+      if (currentNumber) {
+        numberDisplay.classList.remove('pop');
+        void numberDisplay.offsetWidth;
+        numberDisplay.classList.add('pop');
+      }
+    });
+  });
+
+  // ============ Генераторы ============
+  const ruCodes = ['900','901','902','903','904','905','906','908','909',
+                   '910','911','912','913','914','915','916','917','918','919',
+                   '920','921','922','923','924','925','926','927','928','929',
+                   '930','931','932','933','934','936','937','938','939',
+                   '950','951','952','953','954','955','956','958','960',
+                   '961','962','963','964','965','966','967','968','969',
+                   '977','978','980','981','982','983','984','985','986','987','988','989',
+                   '991','992','993','994','995','996','997','999'];
+  function generateRussian() {
+    const code = pick(ruCodes);
+    const rest = randDigits(7);
+    return '+7 (' + code + ') ' + rest.slice(0,3) + '-' + rest.slice(3,5) + '-' + rest.slice(5);
+  }
+  function generateNorwegian() {
+    const firstDigit = Math.random() < 0.5 ? '4' : '9';
+    const digits = firstDigit + randDigits(7);
+    return '+47 ' + digits.slice(0,3) + ' ' + digits.slice(3,5) + ' ' + digits.slice(5);
+  }
+  function generateSwedish() {
+    const second = pick(['0','2','3','6','9']);
+    const digits = '7' + second + randDigits(7);
+    return '+46 ' + digits.slice(0,2) + ' ' + digits.slice(2,5) + ' ' + digits.slice(5,7) + ' ' + digits.slice(7);
+  }
+  function generateFinnish() {
+    const prefix = Math.random() < 0.5 ? '04' : '05';
+    const third = randInt(0, 9);
+    const rest = randDigits(6);
+    const digits = prefix + third + rest;
+    return '+358 ' + digits.slice(0,3) + ' ' + digits.slice(3,6) + ' ' + digits.slice(6);
+  }
+  function generatePolish() {
+    const first = pick(['5','6','7','8']);
+    const rest = first + randDigits(8);
+    return '+48 ' + rest.slice(0,3) + ' ' + rest.slice(3,6) + ' ' + rest.slice(6);
+  }
+  function generateGerman() {
+    const prefix = pick(['15','16','17']);
+    const rest = prefix + randDigits(9);
+    return '+49 ' + rest.slice(0,3) + ' ' + rest.slice(3,7) + ' ' + rest.slice(7);
+  }
+  function generateIrish() {
+    const second = pick(['3','5','6','7','8','9']);
+    const digits = '8' + second + randDigits(7);
+    return '+353 ' + digits.slice(0,2) + ' ' + digits.slice(2,5) + ' ' + digits.slice(5);
+  }
+
+  const generators = {
+    ru: generateRussian, no: generateNorwegian, se: generateSwedish,
+    fi: generateFinnish, pl: generatePolish, de: generateGerman, ie: generateIrish
+  };
+
+  function generate() {
+    currentNumber = generators[currentCountry]();
+    currentNumberType = null;
+    numberBox.classList.remove('promo-display', 'admin-display');
+    const tag = numberBox.querySelector('.promo-tag');
+    if (tag) tag.remove();
+    numberDisplay.className = 'number ' + currentFont;
+    numberDisplay.classList.remove('pop', 'promo-pop');
+    void numberDisplay.offsetWidth;
+    numberDisplay.textContent = currentNumber;
+    numberDisplay.classList.add('pop');
+    saveBtn.disabled = false;
+
+    if (genCount < 40) {
+      genCount++;
+      saveGenCount();
+      updateGenProgress();
+      if (genCount === 40) {
+        caseInventory.push({
+          id: Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+          type: 'common',
+          timestamp: Date.now()
+        });
+        saveCases();
+        updateInvBadge();
+        showToast('📦 Ты получил Обычный кейс! Загляни в инвентарь', 'case');
+        genCount = 0;
+        saveGenCount();
+        updateGenProgress();
+      }
+    }
+  }
+  genBtn.addEventListener('click', generate);
+
+  // ============ Сохранение и копирование ============
+  saveBtn.addEventListener('click', addToInventory);
+
+  function copyToClipboard(text, successMsg) {
+    (async () => {
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast(successMsg);
+      } catch (e) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast(successMsg);
+      }
+    })();
+  }
+
+  copyBtn.addEventListener('click', () => {
+    if (!currentNumber) { showToast('Сначала сгенерируй номер 🙂'); return; }
+    copyToClipboard(currentNumber, 'Номер скопирован! ✅');
+  });
+
+  // ============ Генерация красивых номеров ============
+
+  // Форматирование цифр под стиль страны (для красоты)
+  function formatRu(d) {
+    // d — 10 цифр
+    return '+7 (' + d.slice(0,3) + ') ' + d.slice(3,6) + '-' + d.slice(6,8) + '-' + d.slice(8,10);
+  }
+  function formatNo(d) {
+    return '+47 ' + d.slice(0,3) + ' ' + d.slice(3,5) + ' ' + d.slice(5,8);
+  }
+  function formatSe(d) {
+    return '+46 ' + d.slice(0,2) + ' ' + d.slice(2,5) + ' ' + d.slice(5,7) + ' ' + d.slice(7,9);
+  }
+  function formatFi(d) {
+    return '+358 ' + d.slice(0,3) + ' ' + d.slice(3,6) + ' ' + d.slice(6,9);
+  }
+  function formatPl(d) {
+    return '+48 ' + d.slice(0,3) + ' ' + d.slice(3,6) + ' ' + d.slice(6,9);
+  }
+  function formatDe(d) {
+    return '+49 ' + d.slice(0,3) + ' ' + d.slice(3,7) + ' ' + d.slice(7,10);
+  }
+  function formatIe(d) {
+    return '+353 ' + d.slice(0,2) + ' ' + d.slice(2,5) + ' ' + d.slice(5,8);
+  }
+
+  const FORMATTERS = {
+    ru: formatRu, no: formatNo, se: formatSe,
+    fi: formatFi, pl: formatPl, de: formatDe, ie: formatIe
+  };
+
+  // Собирает "красивый" набор цифр заданной длины с определённым паттерном.
+  // Паттерн — строка из цифр и символов: 'x' = случайная цифра, 'd' = заданная цифра
+  function buildFromPattern(pattern, fillDigit) {
+    let out = '';
+    for (const ch of pattern) {
+      if (ch >= '0' && ch <= '9') out += ch;
+      else if (ch === 'x') out += randInt(0, 9);
+      else if (ch === 'd') out += fillDigit;
+    }
+    return out;
+  }
+
+  // КРАСИВЫЕ номера: повторяющиеся пары/тройки, "ровные" окончания
+  function makeNiceDigits() {
+    const digit = randInt(1, 9);
+    // 3-4 разных паттерна — гарантированно "приятные" на вид
+    const patterns = [
+      // XXX-XXX-XX (тройка + тройка)
+      () => `${digit}${digit}${digit}${randInt(0,9)}${randInt(0,9)}${randInt(0,9)}${digit}${digit}${digit}`,
+      // пара-пара в конце XX-XX
+      () => `${randInt(1,9)}${randInt(0,9)}${randInt(0,9)}${randInt(0,9)}${randInt(0,9)}${digit}${digit}${digit}${digit}`,
+      // XXX-XY-XX-XX
+      () => `${digit}${digit}${randInt(0,9)}${digit}${digit}${randInt(0,9)}${digit}${digit}${randInt(0,9)}`,
+      // ровный конец XXYY
+      () => `${randInt(1,9)}${randInt(0,9)}${randInt(0,9)}${randInt(0,9)}${randInt(0,9)}${digit}${digit}${randInt(0,9)}${randInt(0,9)}`
+    ];
+    return pick(patterns)();
+  }
+
+  // РЕДКИЕ: явные красивые узоры
+  function makeRareDigits() {
+    const patterns = [
+      // 7-значные окончания
+      (d) => d + '777777',
+      (d) => d + '888888',
+      (d) => d + '555555',
+      (d) => d + '999999',
+      // ровные
+      (d) => d + '000000',
+      // зеркальные
+      (d) => d + '700700',
+      (d) => d + '900900',
+      (d) => d + '800800',
+      // последовательность
+      (d) => d + '123456',
+      (d) => d + '987654',
+      // парные
+      (d) => d + '112233',
+      (d) => d + '445566',
+      (d) => d + '778899'
+    ];
+    const d = String(randInt(1, 9));
+    const p = pick(patterns);
+    return p(d);
+  }
+
+  // ЭПИЧЕСКИЕ: максимально красивые
+  function makeEpicDigits() {
+    const digit = randInt(1, 9);
+    const patterns = [
+      // 7 семёрок/восьмёрок
+      `${digit}${digit}${digit}${digit}${digit}${digit}${digit}`,
+      // ровные последовательности
+      '7777777', '8888888', '9999999', '5555555', '6666666',
+      // красивые
+      '1234567', '7654321', '1111111', '0000000',
+      '7007007', '9009009', '8008008',
+      '0123456', '9876543',
+      '7010701', '9010901',
+      `${digit}${digit}${digit}${randInt(0,9)}${randInt(0,9)}${randInt(0,9)}${digit}`
+    ];
+    return pick(patterns);
+  }
+
+  // ЛЕГЕНДАРНЫЕ: только топовые узоры
+  function makeLegendaryDigits() {
+    const patterns = [
+      '777777777', '888888888', '999999999', '000000000',
+      '123456789', '987654321',
+      '111111111', '555555555', '666666666',
+      '700000000', '900000000', '800000000',
+      '700700700', '900900900',
+      '777777700', '999999900'
+    ];
+    return pick(patterns);
+  }
+
+  // Универсальная функция сборки "красивого" номера под конкретную страну.
+  // Возвращает готовую строку с форматированием.
+  function buildBeautifulNumberForCountry(tier, country) {
+    // Определяем "ядро" цифр без кода страны
+    let core;
+    let isNeedLong = country === 'ru' || country === 'de' || country === 'fi' || country === 'se';
+    // Длины ядер:
+    // ru: 10 (после +7)
+    // no: 8  (после +47)
+    // se: 9  (после +46)
+    // fi: 10 (после +358)
+    // pl: 9  (после +48)
+    // de: 10 (после +49)
+    // ie: 9  (после +353)
+
+    // По тирам строим сначала красивый шаблон, потом адаптируем под длину
+    if (tier === 'nice') {
+      core = makeNiceDigits();
+    } else if (tier === 'rare') {
+      core = makeRareDigits();
+    } else if (tier === 'epic') {
+      core = makeEpicDigits();
+    } else {
+      core = makeLegendaryDigits();
+    }
+
+    // Нужная длина ядра
+    const coreLen = { ru: 10, no: 8, se: 9, fi: 10, pl: 9, de: 10, ie: 9 }[country];
+
+    // Приводим core к нужной длине
+    if (core.length > coreLen) {
+      // Берём "красивую" часть — обычно в конце
+      core = core.slice(core.length - coreLen);
+    } else if (core.length < coreLen) {
+      // Дополняем цифрой в начало (чтобы окончание осталось красивым)
+      core = String(randInt(1, 9)) + core;
+      while (core.length < coreLen) {
+        core = String(randInt(1, 9)) + core;
+      }
+    }
+
+    // Валидация под мобильный префикс страны
+    // ru: должен начинаться с 9
+    // no: должен начинаться с 4 или 9
+    // se: должен начинаться с 7
+    // fi: должен начинаться с 4 или 5
+    // pl: должен начинаться с 5,6,7,8
+    // de: должен начинаться с 1
+    // ie: должен начинаться с 8
+    const prefixRules = {
+      ru: ['9'], no: ['4','9'], se: ['7'],
+      fi: ['4','5'], pl: ['5','6','7','8'],
+      de: ['1'], ie: ['8']
+    };
+    const allowed = prefixRules[country];
+    if (!allowed.includes(core[0])) {
+      core = pick(allowed) + core.slice(1);
+    }
+
+    return FORMATTERS[country](core);
+  }
+
+  // ============ Открытие кейса (рулетка) ============
+  let rouletteState = {
+    active: false,
+    type: null,
+    wonItem: null,
+    skip: false
+  };
+
+  function pickCaseResult(caseType) {
+    // Определяем тир по весам конкретного кейса
+    const weights = CASE_FILLERS[caseType];
+    const tier = pickWeighted(weights);
+
+    // Случайная страна
+    const ckeys = Object.keys(countries);
+    const country = pick(ckeys);
+
+    // Собираем красивый номер
+    const number = buildBeautifulNumberForCountry(tier, country);
+
+    return { number, tier, country };
+  }
+
+  // Фоновый номер для ленты рулетки — тоже красивый, чтобы лента не выглядела убого
+  function makeRouletteBackgroundItem(caseType) {
+    // В легендарном кейсе фон тоже только редкий/эпик/легендарный
+    let allowedTiers;
+    if (caseType === 'legendary') {
+      allowedTiers = ['rare', 'epic', 'legendary'];
+    } else if (caseType === 'pro') {
+      allowedTiers = ['nice', 'rare', 'epic'];
+    } else {
+      allowedTiers = ['nice', 'rare', 'epic'];
+    }
+    const tier = pick(allowedTiers);
+    const ckeys = Object.keys(countries);
+    const country = pick(ckeys);
+    return {
+      number: buildBeautifulNumberForCountry(tier, country),
+      tier,
+      country
+    };
+  }
+
+  function makeRouletteItem(result) {
+    const flag = result.country ? countries[result.country].flag : '🎁';
+    const tierClass = result.tier === 'legendary' ? 'legendary' :
+                      result.tier === 'epic' ? 'rare' :
+                      result.tier === 'rare' ? 'rare' : 'common';
+    return `
+      <div class="roulette-item ${tierClass}">
+        <span class="flag">${flag}</span>
+        <span class="num">${escapeHtml(result.number)}</span>
+      </div>`;
+  }
+
+  function openCase(caseType) {
+    if (rouletteState.active) return;
+    const idx = caseInventory.findIndex(c => c.type === caseType);
+    if (idx === -1) {
+      showToast('У тебя нет такого кейса 🤔');
+      return;
+    }
+
+    caseInventory.splice(idx, 1);
+    saveCases();
+    updateInvBadge();
+
+    rouletteState.active = true;
+    rouletteState.type = caseType;
+    rouletteState.wonItem = null;
+    rouletteState.skip = false;
+
+    inventoryModal.classList.remove('active');
+
+    const ct = CASE_TYPES[caseType];
+    rouletteTitle.textContent = 'Открытие: ' + ct.name;
+    rouletteContainer.className = 'roulette-container ' + (caseType === 'legendary' ? 'legendary' : caseType === 'pro' ? 'pro' : '');
+    rouletteResult.classList.remove('show');
+    rouletteClaimBtn.classList.remove('show');
+    rouletteSkipBtn.style.display = 'block';
+
+    const winner = pickCaseResult(caseType);
+    rouletteState.wonItem = winner;
+
+    const WIN_INDEX = 45;
+    const items = [];
+    for (let i = 0; i < 50; i++) {
+      if (i === WIN_INDEX) {
+        items.push(winner);
+      } else {
+        items.push(makeRouletteBackgroundItem(caseType));
+      }
+    }
+
+    let stripHtml = '';
+    items.forEach(it => {
+      stripHtml += makeRouletteItem(it);
+    });
+    rouletteStrip.innerHTML = stripHtml;
+    rouletteStrip.classList.remove('animating');
+    rouletteStrip.style.transform = 'translateX(0)';
+
+    rouletteModal.classList.add('active');
+
+    const ITEM_WIDTH = 128;
+    const containerWidth = rouletteContainer.offsetWidth;
+    const targetX = WIN_INDEX * ITEM_WIDTH + ITEM_WIDTH / 2 - containerWidth / 2;
+    const jitter = (Math.random() * 80 - 40);
+    const finalX = targetX + jitter;
+
+    setTimeout(() => {
+      rouletteStrip.classList.add('animating');
+      rouletteStrip.style.transform = 'translateX(-' + finalX + 'px)';
+
+      let tickCount = 0;
+      const tickInterval = setInterval(() => {
+        if (rouletteState.skip || tickCount >= 15) {
+          clearInterval(tickInterval);
+          return;
+        }
+        playTickSound();
+        tickCount++;
+      }, 250);
+
+      setTimeout(() => {
+        clearInterval(tickInterval);
+        if (rouletteState.skip) return;
+        finalizeRoulette();
+      }, 4300);
+    }, 100);
+
+    rouletteSkipBtn.onclick = () => {
+      if (rouletteState.skip) return;
+      rouletteState.skip = true;
+      rouletteStrip.classList.remove('animating');
+      rouletteStrip.style.transform = 'translateX(-' + finalX + 'px)';
+      finalizeRoulette();
+    };
+
+    rouletteClaimBtn.onclick = () => {
+      if (!rouletteState.wonItem) return;
+      claimRouletteWin();
+    };
+  }
+
+  function finalizeRoulette() {
+    if (!rouletteState.wonItem) return;
+    const w = rouletteState.wonItem;
+
+    rouletteResultNum.textContent = w.number;
+    const tierLabelMap = {
+      'nice': 'Красивый номер',
+      'rare': 'Редкий номер',
+      'epic': '⭐ Эпический номер',
+      'legendary': '👑 Легендарный номер'
+    };
+    rouletteResultLabel.textContent = tierLabelMap[w.tier] || '';
+    rouletteResult.className = 'roulette-result show';
+    if (w.tier === 'legendary') rouletteResult.classList.add('legendary');
+    else if (w.tier === 'epic' || w.tier === 'rare') rouletteResult.classList.add('rare');
+
+    rouletteSkipBtn.style.display = 'none';
+    rouletteClaimBtn.classList.add('show');
+
+    if (w.tier === 'legendary') {
+      playPromoActivateSound('admin');
+    } else {
+      playPromoActivateSound('promo');
+    }
+  }
+
+  function claimRouletteWin() {
+    if (!rouletteState.wonItem) return;
+    const w = rouletteState.wonItem;
+
+    if (inventory.some(i => i.number === w.number)) {
+      showToast('Такой номер уже есть в инвентаре 🤔');
+    } else {
+      inventory.unshift({
+        id: Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+        number: w.number,
+        country: null,
+        type: 'case',
+        tier: w.tier,
+        timestamp: Date.now()
+      });
+      saveInventory();
+      updateInvBadge();
+      showToast('Номер забран в инвентарь! 🎁', 'case');
+    }
+
+    rouletteState.active = false;
+    rouletteState.wonItem = null;
+    rouletteModal.classList.remove('active');
+
+    if (inventoryModal.classList.contains('active')) {
+      renderInventory();
+    }
+  }
+
+  // ============ Тост ============
+  let toastTimer;
+  function showToast(msg, style = false) {
+    toast.textContent = msg;
+    toast.classList.remove('gold', 'admin', 'case');
+    if (style === 'gold') toast.classList.add('gold');
+    else if (style === 'admin') toast.classList.add('admin');
+    else if (style === 'case') toast.classList.add('case');
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 2400);
+  }
+
+  // ============ Старт ============
+  loadInventory();
+  loadPromos();
+  loadCases();
+  loadGenCount();
+  loadTheme();
+  updateNickPreview();
+  document.querySelector('#countryGrid .country-btn[data-country="ru"]').classList.add('active');
+  document.querySelector('#fontGrid .font-btn[data-font="font-system"]').classList.add('active');
+  updateInvBadge();
+  updateGenProgress();
+  renderActivatedPromos();
+</script>
+
+</body>
+</html>
